@@ -31,8 +31,7 @@ struct EmojiArtDocumentView: View {
                 OptionalImage(uiImage: document.backgroundImage)
                     .scaleEffect(zoomScale)
                     .position(convertFromEmojiCoordinates((0,0), in: geometry))
-                
-                .gesture(doubleTapToZoom(in: geometry.size))
+                    .gesture(doubleTapToZoom(in: geometry.size).exclusively(before: deselectEmojiGesture()))
                 //if we are fetching data display progress view(the spinning wheel), and not display emojis until set. Make it bigger with scale effect
                 if document.backgroundImageFetchStatus == .fetching {
                     ProgressView()
@@ -41,8 +40,10 @@ struct EmojiArtDocumentView: View {
                     ForEach(document.emojis) { emoji in
                         Text(emoji.text)
                             .font(.system(size: fontSize(for: emoji)))
+                            .border(emojiIsChosen(emoji) ? .black : .clear)
                             .scaleEffect(zoomScale)
                             .position(position(for: emoji, in: geometry))
+                            .gesture(chooseEmojiGesture(emoji).simultaneously(with: panEmojiGesture(emoji)))
                     }
                 }
             }
@@ -52,8 +53,9 @@ struct EmojiArtDocumentView: View {
             .onDrop(of: [.utf8PlainText, .url, .image], isTargeted: nil) { providers, location in
                 return drop(providers: providers, at: location, in: geometry)
             }
-            //never put two gestures seperately on one view! use .simultaneously(with: ) to track both of them at the same time. .exclusively works before the other one, preventing the other from firing
-            .gesture(panGesture().simultaneously(with: zoomGesture()))
+            .gesture( setOfChosenEmojis.count > 0 ? emojiZoomGesture() : nil )
+            .gesture( setOfChosenEmojis.count == 0 ? panGesture().simultaneously(with: zoomGesture()) : nil )
+            
             .alert(item: $alertToShow) { alertToShow in
                 alertToShow.alert()
             }
@@ -238,7 +240,57 @@ struct EmojiArtDocumentView: View {
     }
     
     private func fontSize(for emoji: EmojiArtModel.Emoji) -> CGFloat {
-        CGFloat(emoji.size)
+        CGFloat(emoji.size) * (emojiIsChosen(emoji) ? emojiZoomScale : 1)
+    }
+    
+    // MARK: Selecting and de-selecting emoji
+    
+    @State private var setOfChosenEmojis: Set<EmojiArtModel.Emoji> = []
+    
+    private func chooseEmojiGesture (_ emoji: EmojiArtModel.Emoji) -> some Gesture {
+        TapGesture()
+            .onEnded {
+                //toggleMembership in utility extensions. removes or adds emoji to the set
+                setOfChosenEmojis.toggleMembership(of: emoji)
+            }
+    }
+    
+    private func emojiIsChosen(_ emoji: EmojiArtModel.Emoji) -> Bool {
+        setOfChosenEmojis.contains(where: {$0.id == emoji.id})
+    }
+    
+    private func deselectEmojiGesture() -> some Gesture {
+        TapGesture()
+            .onEnded {
+                setOfChosenEmojis.removeAll()
+            }
+    }
+    
+    //MARK: Panning emojis
+    
+    @GestureState private var gesturePanEmojiOffset: CGSize = CGSize.zero
+    
+    private func panEmojiGesture(_ emoji: EmojiArtModel.Emoji) -> some Gesture {
+        DragGesture()
+            .updating($gesturePanEmojiOffset) { latestDragGestureValue, gesturePanEmojiOffset, _ in
+                
+                moveChosenEmojis(by: latestDragGestureValue.translation / zoomScale - gesturePanEmojiOffset, emoji)
+                gesturePanEmojiOffset = latestDragGestureValue.translation / zoomScale
+            }
+            .onEnded { finalDragGestureValue in
+                moveChosenEmojis(by: (gesturePanEmojiOffset / zoomScale), emoji)
+            }
+    }
+    
+    private func moveChosenEmojis(by offset: CGSize, _ emoji: EmojiArtModel.Emoji) {
+        
+        if setOfChosenEmojis.first(where: {$0.id == emoji.id}) != nil {
+            setOfChosenEmojis.forEach { emoji in
+                document.moveEmoji(emoji, by: offset, undoManager: undoManager)
+            }
+        } else {
+            document.moveEmoji(document.emojis.first(where: {$0.id == emoji.id})!, by: offset, undoManager: undoManager)
+        }
     }
     
     //MARK: - PANNING
@@ -261,6 +313,30 @@ struct EmojiArtDocumentView: View {
                 //translation is a special function that can be called on the argument to the closure in this partricular case that returns the distance the finger followed from the start position. Next we are /dividing that by scale we are zoomed in and adding it to already set orientation on the screen
                 steadyStatePanOffset = steadyStatePanOffset + (finalDragGestureValue.translation / zoomScale)
             }
+    }
+    
+    //MARK: Emoji Zoom
+    
+    @GestureState private var gestureEmojiZoomScale: CGFloat = 1
+    
+    private var emojiZoomScale: CGFloat {
+        gestureEmojiZoomScale
+    }
+    
+    private func emojiZoomGesture() -> some Gesture {
+        MagnificationGesture()
+            .updating($gestureEmojiZoomScale) { latestGestureScale, gestureEmojiZoomScale, _ in
+                gestureEmojiZoomScale = latestGestureScale
+            }
+            .onEnded { gestureScaleAtEnd in
+                scaleChosenEmoji(by: gestureScaleAtEnd)
+            }
+    }
+    
+    private func scaleChosenEmoji(by scale: CGFloat) {
+        setOfChosenEmojis.forEach { emoji in
+            document.scaleEmoji(emoji, by: scale, undoManager: undoManager)
+        }
     }
     
     //MARK: - ZOOM
@@ -309,6 +385,8 @@ struct EmojiArtDocumentView: View {
         }
     }
 }
+
+
 
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
