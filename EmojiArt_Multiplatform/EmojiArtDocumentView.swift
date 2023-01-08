@@ -176,13 +176,12 @@ struct EmojiArtDocumentView: View {
     //MARK: Remove
     
     var removeEmojiIcon: some View {
-        AnimatedActionButton(systemImage: "trash") {
+        AnimatedActionButton(title: "Remove Emoji", systemImage: "trash") {
             setOfChosenEmojis.forEach { emoji in
                 setOfChosenEmojis.remove(emoji)
                 document.removeEmoji(emoji)
             }
         }
-        .font(.system(size: defaultEmojiFontSize))
     }
     
     // MARK: - Drag and Drop
