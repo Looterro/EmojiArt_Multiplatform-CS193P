@@ -1,5 +1,5 @@
 # EmojiArt_Multiplatform-CS193P
-Standford CS193P assignment 5 project - The Emoji Art Editor, upgraded with multiplatform support for iOS and macOS wirtten using SwiftUI
+Standford CS193P assignment 5 project - The Emoji Art Editor, upgraded with multiplatform support for iOS and macOS, written using SwiftUI
 
 ## Live Demo iPad
 
@@ -9,7 +9,9 @@ https://user-images.githubusercontent.com/73793088/211198549-5e8a6ba3-b339-42d5-
 
 ## Live Demo MacOS
 
+https://user-images.githubusercontent.com/73793088/211199065-2371fa5b-f134-4d31-9e2a-d1ae4b6b2c37.mov
 
+https://user-images.githubusercontent.com/73793088/211199171-5c44927a-8440-4fb0-9e5d-c4c48deb301a.mov
 
 ## Specification:
 
@@ -23,4 +25,4 @@ https://user-images.githubusercontent.com/73793088/211198549-5e8a6ba3-b339-42d5-
 
 - Application supports undo/redo functionality, files can be saved on macOS and are autosaved on iOS devices
 
-- In file manager files multiple file instances of emojiArt can be created, renamed and deleted
+- In file manager multiple file instances of emojiArt can be created, renamed and deleted
