@@ -90,6 +90,9 @@ struct EmojiArtDocumentView: View {
                         backgroundPicker = .library
                     }
                 }
+                if setOfChosenEmojis.count > 0 {
+                    removeEmojiIcon
+                }
                 #if os(iOS)
                 if let undoManager = undoManager {
                     if undoManager.canUndo {
@@ -168,6 +171,18 @@ struct EmojiArtDocumentView: View {
                 dismissButton: .default(Text("ok"))
             )
         })
+    }
+    
+    //MARK: Remove
+    
+    var removeEmojiIcon: some View {
+        AnimatedActionButton(systemImage: "trash") {
+            setOfChosenEmojis.forEach { emoji in
+                setOfChosenEmojis.remove(emoji)
+                document.removeEmoji(emoji)
+            }
+        }
+        .font(.system(size: defaultEmojiFontSize))
     }
     
     // MARK: - Drag and Drop
