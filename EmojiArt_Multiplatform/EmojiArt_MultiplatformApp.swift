@@ -9,9 +9,17 @@ import SwiftUI
 
 @main
 struct EmojiArt_MultiplatformApp: App {
+    @StateObject var paletteStore = PaletteStore(named: "Default")
+    
     var body: some Scene {
-        DocumentGroup(newDocument: EmojiArt_MultiplatformDocument()) { file in
-            ContentView(document: file.$document)
+        
+        DocumentGroup(newDocument: {EmojiArtDocument()} ) { config in /*config has viewModel we want to use and url to file*/
+            EmojiArtDocumentView(document: config.document)
+                .environmentObject(paletteStore)
+            //fixes double back buttons
+                .toolbarRole(.automatic)
         }
+        
     }
+    
 }
